@@ -1,5 +1,5 @@
 turtleController
-MavricMC/TurtleController/main/code.lua
+MavricMC/CC-TurtleController/main/code.lua
 startup.lua
-MavricMC/TurtleController/main/json.lua
+MavricMC/CC-TurtleController/main/json.lua
 turtleController/json.lua
