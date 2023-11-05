@@ -1,6 +1,4 @@
-//How to return a value
-//{"to":"turtle0", "type":"return", "message":"return  turtle.getFuelLevel()"}
-local ws, err = http.websocket("ws://localhost:3000")
+local ws, err = http.websocket("ws://simple-websocket-server-echo12345.glitch.me")
 os.loadAPI("turtleController/json.lua")
 
 if err then
@@ -20,15 +18,18 @@ elseif ws then
             print("Not for me")
         else
             print(msg.type, ":", msg.message)
-            if msg.type == "code" or msg.type == "return" then
+            if msg.type == "code" then
                 local func = load(msg.message)
-                local ret = func()
-                if msg.type == "return" then
-                    retur = {to = "website", type = "webreturn", message = tostring(ret)}
-                    local returnMsg = json.encode(retur)
-                    ws.send(returnMsg)
-                    printError("Return msg:", returnMsg)
-                end
+                local ret, retErr = func()
+                retur = {to = "website", type = "webreturn", success = tostring(ret), err = tostring(retErr)}
+                local returnMsg = json.encode(retur)
+                ws.send(returnMsg)
+                printError("Return msg:", returnMsg)
+            elseif msg.type == "sign" then
+                local ret, retErr = turtle.place(msg.message)
+                retur = {to = "website", type = "webreturn", success = tostring(ret), err = tostring(retErr)}
+                local returnMsg = json.encode(retur)
+                ws.send(returnMsg)
             end
         end
     end
