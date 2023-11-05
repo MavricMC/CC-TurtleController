@@ -1,120 +1,180 @@
 <!DOCTYPE html>
 <html>
- 
-<head>
-  <script>
-    const ws = new WebSocket("ws://localhost:3000")
- 
- 
-    function moveTurtleForward() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.forward()"}')
-    }
-    function moveTurtleBack() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.back()"}')
-    }
- 
- 
-    function moveTurtleLeft() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.turnLeft()"}')
-    }
-    function moveTurtleRight() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.turnRight()"}')
-    }
- 
- 
-    function moveTurtleUp() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.up()"}')
-    }
-    function moveTurtleDown() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.down()"}')
-    }
- 
- 
-    function useTurtleDigUp() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.digUp()"}')
-    }
-    function useTurtleDig() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.dig()"}')
-    }
-    function useTurtleDigDown() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.digDown()"}')
-    }
- 
- 
-    function useTurtlePlaceUp() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.placeUp()"}')
-    }
-    function useTurtlePlace() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.place()"}')
-    }
-    function useTurtlePlaceDown() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.placeDown()"}')
-    }
- 
- 
-    function useTurtleAttackUp() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.attackUp()"}')
-    }
-    function useTurtleAttack() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.attack()"}')
-    }
-    function useTurtleAttackDOwn() {
-      ws.send('{"to":"turtle0", "type":"code", "message":"return turtle.attackDown()"}')
-    }
- 
- 
-    function sendCode() {
-      var code = document.getElementById('codeBox').value
-      ws.send(code)
-    }
- 
- 
-    window.addEventListener('keydown', function (e) {
-      if (e.key === "w") {
-        moveTurtleForward()
-      }else if (e.key === "s") {
-        moveTurtleBack()
-      }else if (e.key === "a") {
-        moveTurtleLeft()
-      }else if (e.key === "d") {
-        moveTurtleRight()
-      }else if (e.key === "e") {
-        moveTurtleUp()
-      }else if (e.key === "q") {
-        moveTurtleDown()
+  <head>
+    <script>
+      const ws = new WebSocket(
+        "wss://simple-websocket-server-echo12345.glitch.me"
+      ); //"ws://localhost:3000")
+
+      function moveTurtleForward() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.forward()"}'
+        );
       }
-    }, false);
- 
- 
-    ws.addEventListener("message", msg => {
-      console.log(msg.data)
-    })
-  </script>
-</head>
- 
-<body>
-  <link rel="stylesheet" href="style.css">
- 
-  <button class="button button1" onclick="useTurtleDigUp()">˄</button>
-  <button class="button button2" onclick="useTurtleDig()">⛏️</button>
-  <button class="button button3" onclick="useTurtleDigDown()">˅</button>
- 
-  <button class="button button4" onclick="useTurtlePlaceUp()">˄</button>
-  <button class="button button5" onclick="useTurtlePlace()">🔨</button>
-  <button class="button button6" onclick="useTurtlePlaceDown()">˅</button>
- 
-  <button class="button button7" onclick="useTurtleAttackUp()">˄</button>
-  <button class="button button8" onclick="useTurtleAttack()">🗡️</button>
-  <button class="button button9" onclick="useTurtleAttackDOwn()">˅</button>
- 
- 
- 
-  <input class="input input1" type="text" id="codeBox" Maxlength="100"
-    value='{"to":"turtle0", "type":"code", "message":"print(10)"}'>
-  <input class="input input2" type="submit" value="Send" onclick="sendCode()">
- 
- 
- 
-</body>
- 
+      function moveTurtleBack() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.back()"}'
+        );
+      }
+
+      function moveTurtleLeft() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.turnLeft()"}'
+        );
+      }
+      function moveTurtleRight() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.turnRight()"}'
+        );
+      }
+
+      function moveTurtleUp() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.up()"}'
+        );
+      }
+      function moveTurtleDown() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.down()"}'
+        );
+      }
+
+      function useTurtleDigUp() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.digUp()"}'
+        );
+      }
+      function useTurtleDig() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.dig()"}'
+        );
+      }
+      function useTurtleDigDown() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.digDown()"}'
+        );
+      }
+
+      function useTurtlePlaceUp() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.placeUp()"}'
+        );
+      }
+      function useTurtlePlace() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.place()"}'
+        );
+      }
+      function useTurtlePlaceDown() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.placeDown()"}'
+        );
+      }
+
+      function useTurtleAttackUp() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.attackUp()"}'
+        );
+      }
+      function useTurtleAttack() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.attack()"}'
+        );
+      }
+      function useTurtleAttackDOwn() {
+        ws.send(
+          '{"to":"turtle0", "type":"code", "message":"return turtle.attackDown()"}'
+        );
+      }
+
+      function sendCode() {
+        var code = document.getElementById("codeBox").value;
+        ws.send(code);
+      }
+      
+      function placeSign() {
+        var text = document.getElementById("signBox").value;
+        ws.send(`{"to":"turtle0", "type":"sign", "message":"${text}"}`);
+      }
+
+      window.addEventListener(
+        "keydown",
+        function (e) {
+          if (e.key === "w") {
+            moveTurtleForward();
+          } else if (e.key === "s") {
+            moveTurtleBack();
+          } else if (e.key === "a") {
+            moveTurtleLeft();
+          } else if (e.key === "d") {
+            moveTurtleRight();
+          } else if (e.key === "e") {
+            moveTurtleUp();
+          } else if (e.key === "q") {
+            moveTurtleDown();
+          }
+        },
+        false
+      );
+
+      ws.addEventListener("message", (msg) => {
+        console.log('received: %s', msg.data);
+        const obj = JSON.parse(msg.data);
+        if (obj.to === "website" && obj.type === "webreturn") {
+          document.getElementById("returned").innerHTML = "Returned: " + obj.success;
+          if (obj.success === "false") {
+            document.getElementById("error").innerHTML = "Error: " + obj.err;
+          } else {
+            document.getElementById("error").innerHTML = "";
+          }
+        }
+      });
+    </script>
+  </head>
+
+  <body>
+    <link rel="stylesheet" href="style.css" />
+
+    <button class="button button1" onclick="useTurtleDigUp()">˄</button>
+    <button class="button button2" onclick="useTurtleDig()">⛏️</button>
+    <button class="button button3" onclick="useTurtleDigDown()">˅</button>
+
+    <button class="button button4" onclick="useTurtlePlaceUp()">˄</button>
+    <button class="button button5" onclick="useTurtlePlace()">🔨</button>
+    <button class="button button6" onclick="useTurtlePlaceDown()">˅</button>
+
+    <button class="button button7" onclick="useTurtleAttackUp()">˄</button>
+    <button class="button button8" onclick="useTurtleAttack()">🗡️</button>
+    <button class="button button9" onclick="useTurtleAttackDOwn()">˅</button>
+
+    <input
+      class="input input1"
+      type="text"
+      id="codeBox"
+      maxlength="100"
+      value='{"to":"turtle0", "type":"code", "message":"print(10)"}'
+    />
+    <input
+      class="input input2"
+      type="submit"
+      value="Send"
+      onclick="sendCode()"
+    />
+    <input
+      class="input input3"
+      type="text"
+      id="signBox"
+      maxlength="100"
+      value='get recked\nloser'
+    />
+    <input
+      class="input input4"
+      type="submit"
+      value="Send"
+      onclick="placeSign()"
+    />
+    
+    <p class="output" id="returned"></p>
+    <p class="outputError" id="error"></p>
+  </body>
 </html>
