@@ -1,4 +1,4 @@
-local ws, err = http.websocket("ws://simple-websocket-server-echo12345.glitch.me")
+local ws, err = http.websocket("ws://localhost:3000")
 os.loadAPI("turtleController/json.lua")
 
 if err then
