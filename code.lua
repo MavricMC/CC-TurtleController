@@ -1,7 +1,7 @@
 //How to return a value
 //{"to":"turtle0", "type":"return", "message":"return  turtle.getFuelLevel()"}
 local ws, err = http.websocket("ws://localhost:3000")
-os.loadAPI("/json")
+os.loadAPI("turtleController/json.lua")
 
 if err then
     error(err)
