@@ -1,0 +1,404 @@
+* {
+    box-sizing: border-box;
+}
+
+html {
+    overflow: hidden;
+}
+
+body {
+    margin: 0;
+    background: #0c4a6e;
+    user-select: none;
+}
+
+.btn-group {
+    position: fixed;
+    border: 3px solid red;
+    border-radius: 8px;
+    width: 4%;
+    height: 10.5vh;
+    margin: 0.5%;
+    overflow: hidden;
+}
+
+.button {
+    width: 100%;
+    height: 3vh;
+    background: #2e2e2e;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.button:hover {
+    background: #4e4e4e;
+}
+
+.button:active {
+    background: #666;
+}
+
+.middle {
+    height: 4vh;
+    border-top: 3px solid red;
+    border-bottom: 3px solid red;
+}
+
+.grp2 {
+    left: 5%;
+    border-color: orange;
+}
+
+.grp3 {
+    left: 10%;
+    border-color: yellow;
+}
+
+.grp4 {
+    left: 15%;
+    border-color: cyan;
+}
+
+.grp5 {
+    left: 20%;
+    border-color: blue;
+}
+
+.Cbutton {
+    overflow: hidden;
+    position: fixed;
+    border: 3px solid white;
+    border-radius: 8px;
+    width: 4%;
+    height: 4vh;
+    background: #2e2e2e;
+    color: white;
+    cursor: pointer;
+    margin: 0.5%;
+    top: 11.5vh;
+}
+
+.C2 {
+    left: 5%;
+}
+
+.C3 {
+    left: 10%;
+}
+
+.C4 {
+    left: 15%;
+}
+
+.C5 {
+    left: 20%;
+}
+
+.C6 {
+    left: 25%;
+    top: 6.5vh;
+}
+
+.C7 {
+    left: 25%;
+}
+
+.grid-container {
+    position: fixed;
+    top: 58.7vh;
+    border: 6px solid black;
+    border-radius: 8px;
+    background: black;
+    width: 29%;
+    height: 41.5vh;
+}
+
+.grid-item {
+    left: 0.5%;
+    width: 7%;
+    height: 10vh;
+    position: fixed;
+    top: 59.5vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #2e2e2e;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border: 6px solid black;
+    border-radius: 10px;
+}
+
+.grid-item:hover {
+    background: #4e4e4e;
+}
+
+.grid-item:active {
+    background: #666;
+}
+
+.row2 {
+    top: 69.5vh;
+}
+
+.row3 {
+    top: 79.5vh;
+}
+
+.row4 {
+    top: 89.5vh;
+}
+
+.col2 {
+    left: 7.5%;
+}
+
+.col3 {
+    left: 14.5%;
+}
+
+.col4 {
+    left: 21.5%;
+}
+
+.context-menu {
+    position: absolute;
+    text-align: center;
+    background: lightgray;
+    border: lightgray;
+    border-radius: 5px;
+    z-index: 1;
+}
+
+.context-menu ul {
+    padding: 0px;
+    margin: 0px;
+    min-width: 150px;
+    list-style: none;
+}
+
+.context-menu ul li {
+    padding-bottom: 7px;
+    padding-top: 7px;
+    border: lightgray;
+    border-radius: 5px;
+}
+
+.context-menu ul li a {
+    text-decoration: none;
+    color: black;
+}
+
+.context-menu ul li:hover {
+    background: darkgray;
+}
+
+.name {
+    pointer-events: none;
+    position: absolute;
+    text-align: center;
+    background: black;
+    border: black;
+    border-radius: 5px;
+    color: white;
+    padding: 5px;
+}
+
+/* circle progress bar*/
+.flex-wrapper {
+    display: flex;
+    flex-flow: row nowrap;
+}
+
+.single-chart {
+    position: fixed;
+    left: 79%;
+    width: 33%;
+    justify-content: space-around;
+}
+
+.circular-chart {
+    display: block;
+    margin: 10px auto;
+    max-width: 20%;
+    max-height: 250px;
+}
+
+.circle-bg {
+    fill: none;
+    stroke: #eee;
+    stroke-width: 3.8;
+}
+
+.circle {
+    fill: lightgray;
+    stroke-width: 2.8;
+    stroke-linecap: round;
+    animation: progress 1s ease-out forwards;
+}
+
+@keyframes progress {
+    0% {
+        stroke-dasharray: 0 100;
+    }
+}
+
+.circle {
+    stroke: #4CC790;
+}
+
+.circular-chart.red .circle {
+    stroke: red;
+}
+
+.percentage {
+    fill: #666;
+    font-family: sans-serif;
+    font-size: 0.5em;
+    text-anchor: middle;
+}
+
+#turtlelist {
+    position: fixed;
+    left: 25%;
+    border: 1px solid white;
+    border-radius: 8px;
+    width: 7%;
+    height: 4vh;
+    background: #2e2e2e;
+    color: white;
+    cursor: pointer;
+    margin: 0.5%;
+    padding-left: 0.5%;
+}
+
+#popup {
+    display: none;
+    position: fixed;
+    top: 40%;
+    left: 42.5%;
+    width: 15%;
+    border: 3px solid white;
+    border-radius: 5px;
+    padding: 10px;
+    background: white;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+#popup-input {
+    width: 100%;
+    padding: 15px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border: none;
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+
+#popup-input:focus {
+    background: #ddd;
+    outline: none;
+}
+
+.popup-btn {
+    background: black;
+    color: white;
+    padding: 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 48%;
+    text-align: center;
+}
+
+#popup-cancel {
+    float: right;
+}
+
+.popup-btn:hover {
+    background: #2e2e2e;
+}
+
+@media only screen and (max-width: 900px) {
+
+    /*mobile*/
+    .btn-group {
+        /*width: 10%;
+        height: 29vh;
+        margin: 1%;*/
+        display: none;
+    }
+
+    /*.button {
+        width: 100%;
+        height: 8vh;
+    }
+
+    .middle {
+        height: 12vh;
+    }
+
+    .grp2 {
+        left: 12%;
+        border-color: orange;
+    }
+
+    .grp3 {
+        left: 24%;
+        border-color: yellow;
+    }
+
+    .grp4 {
+        left: 36%;
+        border-color: cyan;
+    }
+
+    .grp5 {
+        left: 48%;
+        border-color: blue;
+    }*/
+
+    .Cbutton {
+        /*width: 8%;
+        height: 15vh;
+        margin: 1%;
+        left: 50%;
+        top: 80vh;*/
+        display: none;
+  }
+
+    /*.C2 {
+        left: 60%;
+    }
+
+    .C3 {
+        left: 70%;
+    }
+
+    .C4 {
+        left: 80%;
+    }
+
+    .C5 {
+        left: 90%;
+    }*/
+
+    .grid-container {
+        display: none;
+    }
+
+    #turtlelist {
+        /*left: 60%;
+        width: 10%;
+        height: 8vh;
+        margin: 1%;
+        padding-left: 0.5%;*/
+        left: 0;
+        width: 10%;
+        height: 8vh;
+        margin: 1%;
+        padding-left: 0.5%;
+    }
+}
