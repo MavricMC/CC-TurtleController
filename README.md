@@ -5,6 +5,6 @@
 </p>
 # `Add description here`
 
-# How to install.
+# How to install. `Warning! Turtle-Controller does not work with the installer yet. If you have the knowledge you can download the file and set it up your self but if not wait till I make a video on my channel`
 
 To install this github repository in CC-Tweaked you must first run `pastebin run dgrAh4CY` to install gitGet then run `gitGet install MavricMC/CC-TurtleController`.
