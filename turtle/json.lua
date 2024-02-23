@@ -1,6 +1,6 @@
-//Not my code
-//All credit to DOJNAZ
-//https://pastebin.com/tXpZCQ2z
+--Not my code
+--All credit to DOJNAZ
+--https://pastebin.com/tXpZCQ2z
 ------------------------------------------------------------------ utils
 local controls = {["\n"]="\\n", ["\r"]="\\r", ["\t"]="\\t", ["\b"]="\\b", ["\f"]="\\f", ["\""]="\\\"", ["\\"]="\\\\"}
 
