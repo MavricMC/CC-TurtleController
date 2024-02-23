@@ -3,15 +3,11 @@ const express = require("express");
 const WebSocket = require("ws");
 const SocketServer = require("ws").Server;
 
-const server = express().listen(3000);
+const server = express().listen(8000);
 
 const wss = new SocketServer({ server });
 
-function delay(time) {
-  return new Promise((resolve) => setTimeout(resolve, time));
-}
-
-console.log("online!");
+console.log("WS server listening on port 8000");
 
 wss.on("connection", (ws) => {
   console.log("client conected");
