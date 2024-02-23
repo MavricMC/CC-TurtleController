@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turtle Controller</title>
+    <script>
+        const serverUrl = "ws://localhost:8000"
+        let ws
+        const slots = []
+        let turtles = []
+        let turtleModles = []
+        let current = 0
+        let currentIndex = 0
+        function sendCode(turtle, code, tag) {
+            ws.send('{"to":"' + turtle + '", "type":"code", "message":"return ' + code + '", "tag":"' + tag + '"}')
+        }
+
+        function sendMovement(turtle, code, tag) {
+            ws.send('{"to":"' + turtle + '", "type":"move", "message":"return ' + code + '", "tag":"' + tag + '"}')
+        }
+
+        function sendSign(turtle) {
+            ws.send('{"to":"' + turtle + '", "type":"code", "message":"' + document.getElementById("popup-input").value + '", "tag":"sign"}')
+        }
+
+        function sendCreate(turtle) {
+            ws.send('{"to":"' + turtle + '", "type":"create"}')
+        }
+
+        function sendMine(turtle, length, tag) {
+            ws.send('{"to":"' + turtle + '", "type":"mine", "length":"' + length + '", "tag":"' + tag + '"}')
+        }
+
+        function getInv(turtle) {
+            ws.send('{"to":"' + turtle + '", "type":"inv"}')
+        }
+
+        function hover(event) {
+            //console.log(event.target.id)
+            //console.log(slots)
+            if (slots[event.target.id] != undefined) {
+                //console.log("Hovered: " + slots[event.target.id].name)
+                document.getElementById("name").innerText = slots[event.target.id].name
+            } else {
+                //console.log("Hovered: Empty")
+                document.getElementById("name").innerText = "Empty"
+            }
+            if (document.getElementById("name3d").style.display == "block") {
+                document.getElementById("name3d").style.display = "none"
+            }
+            document.getElementById("name").style.display = "block"
+            document.getElementById("name").style.left = (document.getElementById(event.target.id).getBoundingClientRect().left + (document.getElementById(event.target.id).getBoundingClientRect().width / 1.5)) + "px"
+            document.getElementById("name").style.top = document.getElementById(event.target.id).getBoundingClientRect().top + "px"
+        }
+
+        function openPopup(type) {
+            document.getElementById("popup").style.display = "block"
+            if (type == 'sign') {
+                document.getElementById("popup-input").type = ""
+                document.getElementById("popup-label").innerText = "Sign"
+            } else if (type == 'mine') {
+                document.getElementById("popup-input").type = "number"
+                document.getElementById("popup-label").innerText = "Mine"
+            } else {
+                document.getElementById("popup-input").type = ""
+                document.getElementById("popup-label").innerText = 'Custom (No ")'
+            }
+
+        }
+
+        function closePopup() {
+            document.getElementById("popup").style.display = "none"
+            document.getElementById("popup-input").value = ""
+        }
+    </script>
+</head>
+
+<body>
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/"
+          }
+        }
+      </script>
+
+    <script type="module">
+        import * as THREE from 'three'
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        const scene = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        )
+        // camera.position.set(4.61, 2.74, 8)
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        document.body.appendChild(renderer.domElement)
+
+        const raycaster = new THREE.Raycaster();
+
+        const controls = new OrbitControls(camera, renderer.domElement)
+
+        const blocks = []
+        const frames = []
+        let slot = 1 //selected in slot in turtle
+        let selected = 1 //slot clicked on screen
+        const baseUrl = window.location.href//'http://localhost:3000/'
+        const full = 10000 //Fuel level considered 100%
+        //const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1.5), new THREE.MeshLambertMaterial({ color: 0x00ff00 }));
+
+        //Instantiate a loader for the .gltf file
+        const loader = new GLTFLoader()
+
+        let cube;
+        let cubeBasic;
+
+        // Checks position of all blocks to prevent duplication
+        function checkBlock(x, y, z) {
+            let multi = true
+            blocks.forEach(function (item, index) {
+                if (item.position.x == x && item.position.y == y && item.position.z == z) {
+                    multi = false
+                    return
+                }
+            })
+            return multi
+        }
+
+        function checkTurtle(x, y, z) {
+            let multiT = true
+            turtleModles.forEach(function (item, index) {
+                if (item.position.x == x && item.position.y == y && item.position.z == z) {
+                    multiT = false
+                    return
+                }
+            })
+            return multiT
+        }
+
+        function getIndex(id) {
+            let tempIndex = false
+            turtles.forEach(function (item, index) {
+                if (item.turtleID == id) {
+                    tempIndex = index
+                    return
+                }
+            })
+            return tempIndex
+        }
+
+        const stringToColour = (str) => {
+            let hash = 0;
+            str.split('').forEach(char => {
+                hash = char.charCodeAt(0) + ((hash << 5) - hash)
+            })
+            let colour = '#'
+            for (let i = 0; i < 3; i++) {
+                const value = (hash >> (i * 8)) & 0xff
+                colour += value.toString(16).padStart(2, '0')
+            }
+            return colour
+        }
+
+        function createBlock(x, y, z, name) {
+            // Check if block already exists
+            if (checkBlock(x, y, z) && checkTurtle(x, y, z)) {
+                //console.log('place')
+                // Create the block itself
+                const blockGeom = new THREE.BoxGeometry(1, 1, 1)
+                const block = new THREE.Mesh(blockGeom, new THREE.MeshBasicMaterial({ color: stringToColour(name), transparent: true }))
+
+                // Also add a wireframe to the block to show the depth
+                const wireframe = new THREE.LineSegments(new THREE.EdgesGeometry(blockGeom))
+
+                block.layers.enable(1)
+                block.userData.name = name
+
+                scene.add(block)
+                scene.add(wireframe)
+
+                block.position.set(x, y, z)
+                wireframe.position.set(x, y, z)
+
+                blocks.push(block)
+                frames.push(wireframe)
+                return 1
+            }
+            return 0
+        }
+
+        function clearWorld() {
+            blocks.forEach(function (item, index) {
+                scene.remove(item)
+            });
+            frames.forEach(function (item, index) {
+                scene.remove(item)
+            });
+            blocks.length = 0
+            frames.length = 0
+            console.log(blocks)
+            console.log(frames)
+        }
+
+        function clearTurtles() {
+            turtleModles.forEach(function (item, index) {
+                scene.remove(item)
+            });
+            turtleModles.length = 0
+            turtles.length = 0
+            document.getElementById("turtlelist").innerHTML = ""
+            console.log(turtleModles)
+            console.log(turtles)
+        }
+
+        function deleteBlock(x, y, z) {
+            blocks.forEach(function (item, index) {
+                if (item.position.x == x && item.position.y == y && item.position.z == z) {
+                    //console.log(blocks, frames)
+                    scene.remove(item)
+                    scene.remove(frames[index])
+                    blocks.splice(index, 1)
+                    frames.splice(index, 1)
+                    //console.log(blocks, frames)
+                    return
+                }
+            })
+        }
+
+        function setTran(x, y, z) {
+            blocks.forEach(function (item, index) {
+                if (item.position.x > (x - 2) && item.position.x < (x + 2) && item.position.y > (y - 2) && item.position.y < (y + 2) && item.position.z > (z - 2) && item.position.z < (z + 2)) {
+                    item.material.opacity = 0.7
+                    //console.log(item)
+                    return
+                } else {
+                    item.material.opacity = 1
+                }
+            })
+        }
+
+        async function update(x, y, z, msg, id, index) {
+            let up2 = 0
+            let fwd2 = 0
+            let down2 = 0
+            let center = false
+            if (msg.up) {
+                up2 = createBlock(x, y + 1, z, msg.upD)
+            } else if (!checkBlock(x, y + 1, z)) {
+                // Remove block no longer there
+                //console.log('dell top')
+                up2 = 2
+                deleteBlock(x, y + 1, z)
+            }
+            if (msg.fwd) {
+                if (turtles[index].rotation == 0) {
+                    fwd2 = createBlock(x, y, z - 1, msg.fwdD)
+                } else if (turtles[index].rotation == 1) {
+                    fwd2 = createBlock(x + 1, y, z, msg.fwdD)
+                } else if (turtles[index].rotation == 2) {
+                    fwd2 = createBlock(x, y, z + 1, msg.fwdD)
+                } else if (turtles[index].rotation == 3) {
+                    fwd2 = createBlock(x - 1, y, z, msg.fwdD)
+                }
+            } else {
+                if (turtles[index].rotation == 0) {
+                    if (!checkBlock(x, y, z - 1)) {
+                        // Remove block no longer there
+                        //console.log('dell fwd 0')
+                        fwd2 = 2
+                        deleteBlock(x, y, z - 1)
+                    }
+                } else if (turtles[index].rotation == 1) {
+                    if (!checkBlock(x + 1, y, z)) {
+                        // Remove block no longer there
+                        //console.log('dell fwd 1')
+                        fwd2 = 2
+                        deleteBlock(x + 1, y, z)
+                    }
+                } else if (turtles[index].rotation == 2) {
+                    if (!checkBlock(x, y, z + 1)) {
+                        // Remove block no longer there
+                        //console.log('dell fwd 2')
+                        fwd2 = 2
+                        deleteBlock(x, y, z + 1)
+                    }
+                } else if (turtles[index].rotation == 3) {
+                    if (!checkBlock(x - 1, y, z)) {
+                        // Remove block no longer there
+                        //console.log('dell fwd 3')
+                        fwd2 = 2
+                        deleteBlock(x - 1, y, z)
+                    }
+                }
+            }
+            if (msg.down) {
+                down2 = createBlock(x, y - 1, z, msg.downD)
+            } else if (!checkBlock(x, y - 1, z)) {
+                // Remove block no longer there
+                //console.log('dell bottom')
+                down2 = 2
+                deleteBlock(x, y - 1, z)
+            }
+
+            if (!checkBlock(x, y, z)) {
+                // Block cant be at turtles position so its deleted
+                //console.log('dell center')
+                deleteBlock(x, y, z)
+                center = true
+            }
+
+            //console.log(up2, fwd2, down2, center)
+            const res = await fetch(baseUrl + 'info/update?key={"xPos":' + x + ', "yPos":' + y + ', "zPos":' + z + ', "advanced":' + turtleModles[currentIndex].userData.advanced + ', "center":' + center + ', "up":' + up2 + ', "upD":"' + msg.upD + '", "fwd":' + fwd2 + ', "fwdD":"' + msg.fwdD + '", "down":' + down2 + ', "downD":"' + msg.downD + '", "rotation":' + turtles[index].rotation + ', "id":' + id + '}',
+                {
+                    method: 'GET'
+                })
+            //console.log(res)
+            const data = await res.json()
+            //console.log(data.info)
+        }
+
+        async function getWorld() {
+            const res = await fetch(baseUrl + 'info/world?key={"xPos":2, "yPos":1, "zPos":0}',
+                {
+                    method: 'GET'
+                })
+            //console.log(res)
+            const data = await res.json()
+            console.log(data.info)
+            data.info.forEach(function (item, index) {
+                //console.log(item)
+                createBlock(item.x, item.y, item.z, item.blockID)
+            })
+        }
+
+        async function getTurtle(id) {
+            const res = await fetch(baseUrl + 'info/turtle?key={}',
+                {
+                    method: 'GET'
+                })
+            //console.log(res)
+            const data = await res.json()
+            //console.log(data.info)
+            if (turtles.length > 0) {
+                data.info.forEach(function (item, index) {
+                    //console.log(item)
+                    const opt = document.createElement("option");
+                    opt.value = item.turtleID
+                    opt.text = 'Turtle #' + item.turtleID
+                    document.getElementById("turtlelist").appendChild(opt)
+                    if (item.turtleID == id) {
+                        console.log('Selected turtle: ' + item.turtleID)
+                        current = item.turtleID
+                        currentIndex = index
+                        document.getElementById("turtlelist").selectedIndex = index
+                    }
+                })
+            } else {
+                data.info.forEach(function (item, index) {
+                    //console.log(item.advanced)
+                    if (item.advanced) {
+                        var turt = cube.clone()
+                    } else {
+                        var turt = cubeBasic.clone()
+                    }
+
+                    turt.position.set(item.x, item.y, item.z)
+                    // Rotate Turtle Based on direction
+                    switch (item.rotation) {
+                        case 0:
+                            turt.rotation.y = 0 //Its in radians not degrees
+                            break
+                        case 1:
+                            turt.rotation.y = -1.57079633
+                            break
+                        case 2:
+                            turt.rotation.y = -3.14159265
+                            break
+                        case 3:
+                            turt.rotation.y = -4.71238898
+                            break
+                    }
+                    scene.add(turt)
+                    turtleModles.push(turt)
+                    //console.log(item)
+                    const opt = document.createElement("option")
+                    opt.value = item.turtleID
+                    opt.text = 'Turtle#' + item.turtleID
+                    document.getElementById("turtlelist").appendChild(opt)
+                    if (item.turtleID == id) {
+                        currentIndex = index
+                        document.getElementById("turtlelist").selectedIndex = index
+                    }
+                })
+                if (id == undefined) {
+                    current = data.info[0].turtleID
+                    currentIndex = 0
+                }
+            }
+
+
+            turtles = data.info
+
+            console.log(turtles)
+            //console.log(turtles[currentIndex].x, turtles[currentIndex].y, turtles[currentIndex].z)
+            //turtleModles[currentIndex].position.set(turtles[currentIndex].x, turtles[currentIndex].y, turtles[currentIndex].z)
+
+            controls.target = new THREE.Vector3(turtles[currentIndex].x, turtles[currentIndex].y, turtles[currentIndex].z)
+            //camera.position.z = 5
+            // Rotate camera Based on direction
+            switch (turtles[currentIndex].rotation) {
+                case 0:
+                    camera.position.set(turtles[currentIndex].x, turtles[currentIndex].y + 2, turtles[currentIndex].z + 5)
+                    break
+                case 1:
+                    camera.position.set(turtles[currentIndex].x - 5, turtles[currentIndex].y + 2, turtles[currentIndex].z)
+                    break
+                case 2:
+                    camera.position.set(turtles[currentIndex].x, turtles[currentIndex].y + 2, turtles[currentIndex].z - 5)
+                    break
+                case 3:
+                    camera.position.set(turtles[currentIndex].x + 5, turtles[currentIndex].y + 2, turtles[currentIndex].z)
+                    break
+            }
+            controls.update()
+            getInv(current)
+            if (turtleModles[currentIndex].userData.looped) {
+                document.getElementById("25").style.background = "green"
+            } else {
+                document.getElementById("25").style.background = "#2e2e2e"
+            }
+            sendMovement(current, 'gps.locate()', 'update')
+        }
+
+        async function sendTurtle(id, advanced, x, y, z, rotation) {
+            //console.log(up2, fwd2, down2, center)
+            const res = await fetch(baseUrl + 'info/start?key={"id":' + id + ', "advanced":' + advanced + ', "x":' + x + ', "y":' + y + ', "z":' + z + ', "rotation":' + rotation + '}',
+                {
+                    method: 'GET'
+                })
+            //console.log(res)
+            const data = await res.json()
+            console.log(data)
+            if (data !== undefined) {
+                console.log('Adding turtle')
+                //addTurtle(data.info)
+                clearTurtles()
+                getTurtle(current)
+            }
+            //console.log(data.info)
+        }
+
+        //ws.addEventListener("message", (msg) => {
+        function message(msg) {
+            console.log('received: %s', msg.data)
+            const obj = JSON.parse(msg.data)
+            const changeIndex = getIndex(obj.from)
+            if (obj.to == "website") {
+                if (changeIndex !== false) {
+                    if (obj.type == "move") {
+                        if (obj.success) {
+                            if (obj.tag !== "update") {
+                                if (obj.tag == "left") {
+                                    turtles[changeIndex].rotation--
+                                    if (turtles[changeIndex].rotation < 0) turtles[changeIndex].rotation = 3
+                                    //console.log("left")
+                                } else if (obj.tag == "right") {
+                                    turtles[changeIndex].rotation++
+                                    if (turtles[changeIndex].rotation > 3) turtles[changeIndex].rotation = 0
+                                    //console.log("right")
+                                } else if (obj.tag == "forward") {
+                                    if (turtles[changeIndex].rotation == 0) turtleModles[changeIndex].position.z -= 1
+                                    else if (turtles[changeIndex].rotation == 1) turtleModles[changeIndex].position.x += 1
+                                    else if (turtles[changeIndex].rotation == 2) turtleModles[changeIndex].position.z += 1
+                                    else if (turtles[changeIndex].rotation == 3) turtleModles[changeIndex].position.x -= 1
+                                    //console.log("forward")
+                                } else if (obj.tag == "back") {
+                                    if (turtles[changeIndex].rotation == 0) turtleModles[changeIndex].position.z += 1
+                                    else if (turtles[changeIndex].rotation == 1) turtleModles[changeIndex].position.x -= 1
+                                    else if (turtles[changeIndex].rotation == 2) turtleModles[changeIndex].position.z -= 1
+                                    else if (turtles[changeIndex].rotation == 3) turtleModles[changeIndex].position.x += 1
+                                    //console.log("back")
+                                } else if (obj.tag == "down") {
+                                    //console.log("down")
+                                    turtleModles[changeIndex].position.y -= 1
+                                } else if (obj.tag == "up") {
+                                    //console.log("up")
+                                    turtleModles[changeIndex].position.y += 1
+                                }
+                                // Rotate Turtle Based on stored direction
+                                switch (turtles[changeIndex].rotation) {
+                                    case 0:
+                                        turtleModles[changeIndex].rotation.y = 0
+                                        break
+                                    case 1:
+                                        turtleModles[changeIndex].rotation.y = -1.57
+                                        break
+                                    case 2:
+                                        turtleModles[changeIndex].rotation.y = -3.14
+                                        break
+                                    case 3:
+                                        turtleModles[changeIndex].rotation.y = -4.71
+                                        break
+                                }
+                                if (changeIndex == currentIndex) {
+                                    controls.target = new THREE.Vector3(turtleModles[changeIndex].position.x, turtleModles[changeIndex].position.y, turtleModles[changeIndex].position.z)
+                                    controls.update()
+                                }
+                            }
+                        } else {
+                            console.log("Error: " + obj.err)
+                        }
+                        //console.log(obj.fuel)
+                        if (changeIndex == currentIndex) {
+                            if (obj.fuel > full) {
+                                document.getElementById("red").style.display = "none"
+                                document.getElementById("green").style.display = "block"
+                                document.getElementById("percent").innerHTML = obj.fuel
+                                //document.getElementById("percent").innerHTML = '>100%'
+                                document.getElementById("percentage").setAttribute('stroke-dasharray', '100, 100')
+                            } else if (obj.fuel < (full / 10)) {
+                                document.getElementById("green").style.display = "none"
+                                document.getElementById("red").style.display = "block"
+                                document.getElementById("percent2").innerHTML = obj.fuel
+                                //document.getElementById("percent2").innerHTML = obj.fuel / (full / 100) + '%'
+                                document.getElementById("percentage2").setAttribute('stroke-dasharray', obj.fuel / (full / 100) + ', 100')
+                            } else {
+                                document.getElementById("red").style.display = "none"
+                                document.getElementById("green").style.display = "block"
+                                document.getElementById("percent").innerHTML = obj.fuel
+                                //document.getElementById("percent").innerHTML = obj.fuel / (full / 100) + '%'
+                                document.getElementById("percentage").setAttribute('stroke-dasharray', obj.fuel / (full / 100) + ', 100')
+                            }
+                        }
+                        update(turtleModles[changeIndex].position.x, turtleModles[changeIndex].position.y, turtleModles[changeIndex].position.z, obj, obj.from, changeIndex)
+                        if (changeIndex == currentIndex) {
+                            setTran(turtleModles[currentIndex].position.x, turtleModles[currentIndex].position.y, turtleModles[currentIndex].position.z)
+                        }
+                    } else if (obj.type == "inv") {
+                        if (changeIndex == currentIndex) {
+                            slots[1] = obj.slot1
+                            slots[2] = obj.slot2
+                            slots[3] = obj.slot3
+                            slots[4] = obj.slot4
+                            slots[5] = obj.slot5
+                            slots[6] = obj.slot6
+                            slots[7] = obj.slot7
+                            slots[8] = obj.slot8
+                            slots[9] = obj.slot9
+                            slots[10] = obj.slot10
+                            slots[11] = obj.slot11
+                            slots[12] = obj.slot12
+                            slots[13] = obj.slot13
+                            slots[14] = obj.slot14
+                            slots[15] = obj.slot15
+                            slots[16] = obj.slot16
+                            //console.log(slot)
+                            document.getElementById(slot).style.backgroundColor = '#2e2e2e'
+                            document.getElementById(slot).style.color = 'white'
+                            document.getElementById(obj.selected).style.backgroundColor = 'white'
+                            document.getElementById(obj.selected).style.color = 'black'
+                            slot = obj.selected
+                            //console.log("Selected: " + slot)
+                            slots.forEach(function (item, index) {
+                                if (item != undefined) {
+                                    //console.log(item.count)
+                                    document.getElementById(index).innerHTML = item.count
+                                } else {
+                                    document.getElementById(index).innerHTML = 0
+                                }
+                            })
+                            //console.log(obj.fuel)
+                            if (obj.fuel > full) {
+                                document.getElementById("red").style.display = "none"
+                                document.getElementById("green").style.display = "block"
+                                document.getElementById("percent").innerHTML = obj.fuel
+                                //document.getElementById("percent").innerHTML = '>100%'
+                                document.getElementById("percentage").setAttribute('stroke-dasharray', '100, 100')
+                            } else if (obj.fuel < (full / 10)) {
+                                document.getElementById("green").style.display = "none"
+                                document.getElementById("red").style.display = "block"
+                                document.getElementById("percent2").innerHTML = obj.fuel
+                                //document.getElementById("percent2").innerHTML = obj.fuel / (full / 100) + '%'
+                                document.getElementById("percentage2").setAttribute('stroke-dasharray', obj.fuel / (full / 100) + ', 100')
+                            } else {
+                                document.getElementById("red").style.display = "none"
+                                document.getElementById("green").style.display = "block"
+                                document.getElementById("percent").innerHTML = obj.fuel
+                                //document.getElementById("percent").innerHTML = obj.fuel / (full / 100) + '%'
+                                document.getElementById("percentage").setAttribute('stroke-dasharray', obj.fuel / (full / 100) + ', 100')
+                            }
+                        }
+                        //console.log(slots)
+                    } else if (obj.type == "code") {
+                        if (!obj.success) {
+                            console.log("Error: " + obj.err)
+                        }
+                        if (obj.tag == 'inv') {
+                            if (changeIndex == currentIndex) {
+                                getInv(current)
+                            }
+                        }
+                        //console.log(obj)
+                    } else if (obj.type == "create") {
+                        if (obj.success) {
+                            console.log("Turtle creation succesfull")
+                        } else {
+                            console.log("Turtle creation failed")
+                        }
+                    } else if (obj.type == "continue") {
+                        if (turtleModles[changeIndex].userData.looped) {
+                            sendMine(obj.from, obj.tag, 'continue')
+                            //console.log("Send continue length: " + obj.tag)
+                        }
+                    } else if (obj.type == "start") {
+                        console.log("Known turtle: " + obj.from + " connected")
+                    } else {
+                        console.log("Unknow type")
+                    }
+                } else {
+                    console.log("getIndex() returned false")
+                    //Probably means a new turtle - New turtles will have unknown indexs so will never be triggered in if statement with know indexs
+                    if (obj.type == "start") {
+                        ("Unknown turtle: " + obj.from + " connected")
+                        if (turtles.length > 0) {
+                            if (turtles[currentIndex].rotation == 0) sendTurtle(obj.from, obj.advanced, turtleModles[currentIndex].position.x, turtleModles[currentIndex].position.y, (turtleModles[currentIndex].position.z - 1), turtles[currentIndex].rotation)
+                            else if (turtles[currentIndex].rotation == 1) sendTurtle(obj.from, obj.advanced, (turtleModles[currentIndex].position.x + 1), turtleModles[currentIndex].position.y, turtleModles[currentIndex].position.z, turtles[currentIndex].rotation)
+                            else if (turtles[currentIndex].rotation == 2) sendTurtle(obj.from, obj.advanced, turtleModles[currentIndex].position.x, turtleModles[currentIndex].position.y, (turtleModles[currentIndex].position.z + 1), turtles[currentIndex].rotation)
+                            else if (turtles[currentIndex].rotation == 3) sendTurtle(obj.from, obj.advanced, (turtleModles[currentIndex].position.x - 1), turtleModles[currentIndex].position.y, turtleModles[currentIndex].position.z, turtles[currentIndex].rotation)
+                        } else {
+                            sendTurtle(obj.from, obj.advanced, 0, 0, 0, 0)
+                        }
+                    }
+                }
+            } else {
+                console.log("Not for me")
+            }
+        }//)
+
+        //sendMovement(current, 'gps.locate()', 'update')
+        /*async function postInfo(e) {
+            e.preventDefault()
+            if (input.value == '') { return }
+            const res = await fetch(baseUrl,
+            {
+                method: 'POST',
+                headers: {
+                    "Content-Type": 'application/json'
+                },
+                body: JSON.stringify({
+                    parcel: input.value
+                })
+            })
+            console.log(res)
+            const data = await res.json()
+            console.log(data.info)
+        }*/
+
+        ws = new WebSocket(serverUrl)
+
+        ws.addEventListener('message', message)
+
+        ws.addEventListener("close", close)
+
+        function close(event) {
+            console.log("ws disconnected")
+            ws = new WebSocket(serverUrl)
+            ws.addEventListener('message', message)
+            ws.addEventListener("close", close)
+        }
+
+        window.addEventListener('resize', (event) => {
+            camera.aspect = window.innerWidth / window.innerHeight
+            camera.updateProjectionMatrix()
+            renderer.setSize(window.innerWidth, window.innerHeight)
+        })
+
+        ws.addEventListener("open", (_) => {
+            console.log("websocket ready")
+            //Load the file
+            loader.load(`turtle.glb`, function (gltf) {
+                //If the file is loaded, add it to the scene
+                cube = gltf.scene
+                cube.userData.advanced = true
+                cube.userData.looped = false
+                cube.scale.set(0.45, 0.45, 0.45)
+            },
+                function (xhr) {
+                    //While it is loading, log the progress
+                    console.log((xhr.loaded / xhr.total * 100) + '% Advanced loaded')
+                },
+                function (error) {
+                    //If there is an error, log it
+                    console.error(error)
+                }
+            )
+
+            //Load the file
+            loader.load(`turtleBasic.glb`, function (gltf2) {
+                //If the file is loaded, add it to the scene
+                cubeBasic = gltf2.scene
+                cubeBasic.userData.advanced = false
+                cubeBasic.scale.set(0.45, 0.45, 0.45)
+                getTurtle()
+
+            },
+                function (xhr) {
+                    //While it is loading, log the progress
+                    console.log((xhr.loaded / xhr.total * 100) + '% Basic loaded')
+                },
+                function (error) {
+                    //If there is an error, log it
+                    console.error(error)
+                }
+            )
+
+            getWorld()
+
+            const light = new THREE.DirectionalLight(0xffffff, 0.6)
+            scene.add(light)
+            light.position.y = 500
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8))
+
+            const mouse = new THREE.Vector2()
+            raycaster.layers.set(1)
+            let object // Global variable
+            const name3d = document.getElementById("name3d")
+
+            window.addEventListener('pointermove', (event) => {
+                if (!(event.target.id > 0 && event.target.id < 17) && event.target.id == 'grid-container') {
+                    if (document.getElementById("name").style.display == "block") {
+                        //console.log("stuff")
+                        document.getElementById("name").style.display = "none"
+                    }
+                } else if (event.target.id == '') {
+                    // Prevent raycasting when typing text in input or using invintory
+                    const element = document.activeElement.id
+                    //console.log(element)
+                    if (element == '' && document.getElementById("name").style.display == "none") {
+                        mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+                        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+                        raycaster.setFromCamera(mouse, camera)
+                        let intersects = raycaster.intersectObject(scene, true)
+                        if (intersects.length > 0) {
+                            if (object !== intersects[0].object) {
+                                if (object != undefined && object != 0) {
+                                    //console.log('yeet')
+                                    object.material.color.set(stringToColour(object.userData.name))
+                                    name3d.style.display = 'none'
+                                }
+                                object = intersects[0].object
+                                //console.log('hover')
+                                object.material.color.set(0xaa0000)
+                                //console.log('World hovered ' + object.userData.name)
+                                name3d.style.display = 'block'
+                                name3d.innerText = object.userData.name
+                                //console.log(object)
+                            }
+                        } else {
+                            if (object != undefined && object != 0) {
+                                object.material.color.set(stringToColour(object.userData.name))
+                                name3d.style.display = 'none'
+                                //console.log('test')
+                                object = 0
+                                //console.log(object)
+                            }
+                        }
+                        if (name3d.style.display == 'block') {
+                            //console.log('amogus')
+                            name3d.style.left = event.pageX + 'px'
+                            name3d.style.top = (event.pageY - 45) + 'px'
+                        }
+                    }
+                } else {
+                    name3d.style.display = 'none'
+                }
+            })
+
+            window.addEventListener('keyup', (event) => {
+                // Prevent Movement when typing text in input
+                const element = document.activeElement.id
+                //console.log(element)
+                if (element == '') {
+                    switch (event.code) {
+                        case 'KeyA':
+                            sendMovement(current, 'turtle.turnLeft()', 'left')
+                            break
+                        case 'KeyD':
+                            sendMovement(current, 'turtle.turnRight()', 'right')
+                            break
+                        case 'KeyW':
+                            sendMovement(current, 'turtle.forward()', 'forward')
+                            break
+                        case 'KeyS':
+                            sendMovement(current, 'turtle.back()', 'back')
+                            break
+                        case 'ShiftLeft':
+                            sendMovement(current, 'turtle.down()', 'down')
+                            break
+                        case 'Space':
+                            sendMovement(current, 'turtle.up()', 'up')
+                            break
+                    }
+                }
+            })
+
+            const menu = document.getElementById("contextMenu")
+            window.addEventListener('click', (event) => {
+                //console.log(event.target.id)
+                if (event.target.id > 0 && event.target.id < 17) {
+                    /*if (slots[event.target.id] != undefined) {
+                        console.log("Clicked: " + slots[event.target.id].name)
+    
+                    } else {
+                        console.log("Clicked: Empty ")
+                    }*/
+                    selected = event.target.id
+                    menu.style.display = 'block'
+                    menu.style.left = event.pageX + "px"
+                    menu.style.top = (event.pageY - menu.getBoundingClientRect().height) + "px"
+                } else {
+                    if (event.target.id == 17) {
+                        //console.log("select: " + selected)
+                        sendCode(current, 'turtle.select(' + selected + ')', 'inv')
+                    } else if (event.target.id == 18) {
+                        if (slot == selected) {
+                            document.getElementById("popup").style.display = "block"
+                            document.getElementById("popup-label").innerText = "Drop"
+                            document.getElementById("popup-input").type = "number"
+                        } else {
+                            console.log("change to slot: " + selected + " to drop ")
+                        }
+                    } else if (event.target.id == 19) {
+                        if (slot == selected) {
+                            console.log("Drop all")
+                            sendCode(current, 'turtle.drop()', 'inv')
+                        } else {
+                            console.log("change to slot: " + selected + " to drop all")
+                        }
+                    } else if (event.target.id == 20) {
+                        if (slot == selected) {
+                            console.log("Cant transfer to same slot")
+                        } else {
+                            document.getElementById("popup").style.display = "block"
+                            document.getElementById("popup-label").innerText = "Transfer"
+                            document.getElementById("popup-input").type = "number"
+                        }
+                    } else if (event.target.id == 21) {
+                        if (slot == selected) {
+                            console.log("Cant transfer to same slot")
+                        } else {
+                            console.log("Transfer All to: " + selected)
+                            sendCode(current, 'turtle.transferTo(' + selected + ')', 'inv')
+                        }
+                    } else if (event.target.id == 22) {
+                        sendCode(current, 'turtle.equipLeft()', 'inv')
+                    } else if (event.target.id == 23) {
+                        sendCode(current, 'turtle.equipRight()', 'inv')
+                    } else if (event.target.id == 24) {
+                        //console.log("Refresh")
+                        getInv(current)
+                    } else if (event.target.id == 25) {
+                        turtleModles[currentIndex].userData.looped = !turtleModles[currentIndex].userData.looped
+                        if (turtleModles[currentIndex].userData.looped) {
+                            document.getElementById("25").style.background = "green"
+                        } else {
+                            document.getElementById("25").style.background = "#2e2e2e"
+                        }
+                        console.log("Looped: " + turtleModles[currentIndex].userData.looped)
+                    } else if (event.target.id == 'turtlelist' && currentIndex !== event.target.selectedIndex) {
+                        //console.log(event.target.options[event.target.selectedIndex].value)
+                        current = event.target.options[event.target.selectedIndex].value
+                        currentIndex = event.target.selectedIndex
+                        event.target.innerHTML = ""
+                        getTurtle(current)
+                    } else if (event.target.id == 'popup-submit') {
+                        if (document.getElementById("popup-label").innerText == "Drop") {
+                            console.log("Drop: " + document.getElementById("popup-input").value)
+                            sendCode(current, 'turtle.drop(' + document.getElementById("popup-input").value + ')', 'inv')
+                        } else if (document.getElementById("popup-label").innerText == "Transfer") {
+                            console.log("Transfer: " + document.getElementById("popup-input").value)
+                            sendCode(current, 'turtle.transferTo(' + selected + ', ' + document.getElementById("popup-input").value + ')', 'inv')
+                        } else if (document.getElementById("popup-label").innerText == "Sign") {
+                            console.log("Sign: " + document.getElementById("popup-input").value)
+                            sendSign(current)
+                        } else if (document.getElementById("popup-label").innerText == 'Custom (No ")') {
+                            console.log("Custom: " + document.getElementById("popup-input").value)
+                            sendCode(current, document.getElementById("popup-input").value, 'custom')
+                        } else if (document.getElementById("popup-label").innerText == "Mine") {
+                            console.log("Custom: " + document.getElementById("popup-input").value)
+                            sendMine(current, document.getElementById("popup-input").value, 'mine')
+                        }
+                        closePopup()
+                    }
+                    menu.style.display = "none"
+                    document.getElementById("name").style.display = "none"
+                }
+            })
+
+            function animate() {
+                requestAnimationFrame(animate)
+                renderer.render(scene, camera)
+            }
+            animate()
+        })
+    </script>
+    <link rel="stylesheet" href="style.css" />
+
+    <div class="btn-group" id="group">
+        <button class="button" id="btn" onclick="sendMovement(current, 'turtle.digUp()', 'update')">˄</button>
+        <button class="button middle" id="btn" onclick="sendMovement(current, 'turtle.dig()', 'update')">Dig</button>
+        <button class="button" id="btn" onclick="sendMovement(current, 'turtle.digDown()', 'update')">˅</button>
+    </div>
+
+    <div class="btn-group grp2" id="group">
+        <button class="button" id="btn" onclick="sendMovement(current, 'turtle.placeUp()', 'update')">˄</button>
+        <button class="button middle grp2" id="btn"
+            onclick="sendMovement(current, 'turtle.place()', 'update')">Place</button>
+        <button class="button" id="btn" onclick="sendMovement(current, 'turtle.placeDown()', 'update')">˅</button>
+    </div>
+
+    <div class="btn-group grp3" id="group">
+        <button class="button" id="btn" onclick="sendMovement(current, 'turtle.attackUp()', 'update')">˄</button>
+        <button class="button middle grp3" id="btn"
+            onclick="sendMovement(current, 'turtle.attack()', 'update')">Attack</button>
+        <button class="button" id="btn" onclick="sendMovement(current, 'turtle.attackDown()', 'update')">˅</button>
+    </div>
+
+    <div class="btn-group grp4" id="group">
+        <button class="button" id="btn" onclick="sendMovement(current, 'turtle.suckUp()', 'update')">˄</button>
+        <button class="button middle grp4" id="btn"
+            onclick="sendMovement(current, 'turtle.suck()', 'update')">Suck</button>
+        <button class="button" id="btn" onclick="sendMovement(current, 'turtle.suckDown()', 'update')">˅</button>
+    </div>
+
+    <div class="btn-group grp5" id="group">
+        <button class="button" id="btn" onclick="sendMovement(current, 'turtle.dropUp()', 'update')">˄</button>
+        <button class="button middle grp5" id="btn"
+            onclick="sendMovement(current, 'turtle.drop()', 'update')">Drop</button>
+        <button class="button" id="btn" onclick="sendMovement(current, 'turtle.dropDown()', 'update')">˅</button>
+    </div>
+
+    <button class="Cbutton" id="cbtn" onclick="sendCreate(current)">New</button>
+    <button class="Cbutton C2" id="cbtn" onclick="sendCode(current, 'turtle.refuel()', 'inv')">Refuel</button>
+    <button class="Cbutton C3" id="cbtn" onclick="openPopup()">Send Code</button>
+    <button class="Cbutton C4" id="cbtn" onclick="openPopup('sign')">Place Sign</button>
+    <button class="Cbutton C5" id="cbtn" onclick="sendCode(current, 'turtle.craft()', 'inv')">Craft</button>
+    <button class="Cbutton C5" id="cbtn" onclick="sendCode(current, 'turtle.craft()', 'inv')">Craft</button>
+
+    <button class="Cbutton C6" id="cbtn" onclick="openPopup('mine')">Mine Tunnel</button>
+    <button class="Cbutton C7" id="25">Loop</button>
+
+    <div class="grid-container" id="grid-container" onmousedown="return false;">
+        <div class="grid-item" id="1" onmouseover="hover(event)">0</div>
+        <div class="grid-item col2" id="2" onmouseover="hover(event)">0</div>
+        <div class="grid-item col3" id="3" onmouseover="hover(event)">0</div>
+        <div class="grid-item col4" id="4" onmouseover="hover(event)">0</div>
+        <div class="grid-item row2" id="5" onmouseover="hover(event)">0</div>
+        <div class="grid-item row2 col2" id="6" onmouseover="hover(event)">0</div>
+        <div class="grid-item row2 col3" id="7" onmouseover="hover(event)">0</div>
+        <div class="grid-item row2 col4" id="8" onmouseover="hover(event)">0</div>
+        <div class="grid-item row3" id="9" onmouseover="hover(event)">0</div>
+        <div class="grid-item row3 col2" id="10" onmouseover="hover(event)">0</div>
+        <div class="grid-item row3 col3" id="11" onmouseover="hover(event)">0</div>
+        <div class="grid-item row3 col4" id="12" onmouseover="hover(event)">0</div>
+        <div class="grid-item row4" id="13" onmouseover="hover(event)">0</div>
+        <div class="grid-item row4 col2" id="14" onmouseover="hover(event)">0</div>
+        <div class="grid-item row4 col3" id="15" onmouseover="hover(event)">0</div>
+        <div class="grid-item row4 col4" id="16" onmouseover="hover(event)">0</div>
+    </div>
+
+    <div id="contextMenu" class="context-menu" style="display: none" onmousedown="return false;">
+        <ul>
+            <li id="24">Refresh</li>
+            <li id="23">Equip Right</li>
+            <li id="22">Equip Left</li>
+            <li id="21">Transfer All</li>
+            <li id="20">Transfer</li>
+            <li id="19">Drop all</li>
+            <li id="18">Drop</li>
+            <li id="17">Select</li>
+        </ul>
+    </div>
+
+    <p id="name" class="name" style="display: none" onmousedown="return false;">Empty</p>
+    <p id="name3d" class="name" style="display: none" onmousedown="return false;">3DName</p>
+
+    <div class="flex-wrapper">
+        <div class="single-chart" id="green" style="display: none;">
+            <svg viewBox="0 0 36 36" class="circular-chart green">
+                <path class="circle-bg" d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path id="percentage" class="circle" stroke-dasharray="0, 100" d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="20.35" class="percentage" id="percent">0</text>
+            </svg>
+        </div>
+
+        <div class="single-chart" id="red">
+            <svg viewBox="0 0 36 36" class="circular-chart red">
+                <path class="circle-bg" d="M18 2.0845
+                  a 15.9155 15.9155 0 0 1 0 31.831
+                  a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path id="percentage2" class="circle" stroke-dasharray="0, 100" d="M18 2.0845
+                  a 15.9155 15.9155 0 0 1 0 31.831
+                  a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="20.35" class="percentage" id="percent2">0</text>
+            </svg>
+        </div>
+    </div>
+
+    <select class="test" name="turtlelist" id="turtlelist"></select>
+
+    <div id="popup">
+        <label id="popup-label" for="popup-input"></label>
+        <input id="popup-input" placeholder="Enter Amount" name="popup-input">
+
+        <button class="popup-btn" id="popup-submit">Submit</button>
+        <button class="popup-btn" id="popup-cancel" onclick="closePopup()">Cancel</button>
+    </div>
+</body>
