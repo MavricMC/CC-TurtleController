@@ -1,6 +1,6 @@
 local server = "ws://localhost:8000"
 local ws, err = http.websocket(server)
-os.loadAPI("json.lua")
+os.loadAPI("turtleController/json.lua")
 local id = tostring(os.getComputerID())
 local left = false
 
@@ -38,8 +38,8 @@ function create()
                     fs.delete("disk/code.lua")
                     fs.delete("disk/json.lua")
                     fs.copy("startup.lua", "disk/code.lua")
-                    fs.copy("json.lua", "disk/json.lua")
-                    fs.copy("create.lua", "disk/startup.lua")
+                    fs.copy("turtleController/json.lua", "disk/json.lua")
+                    fs.copy("turtleController/create.lua", "disk/startup.lua")
                     turtle.down()
                     sleep(1)
                     peripheral.call("front", "turnOn")
