@@ -116,6 +116,7 @@ elseif ws then
                     local detail = {}
                     for i = 1, 16 do
                         detail[i] = turtle.getItemDetail(i)
+                        --print(detail[i])
                     end
                     local slot = turtle.getSelectedSlot()
                     local fuelLevel = turtle.getFuelLevel()
