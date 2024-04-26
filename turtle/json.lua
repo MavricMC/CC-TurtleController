@@ -1,6 +1,8 @@
 --Not my code
 --All credit to DOJNAZ
 --https://pastebin.com/tXpZCQ2z
+--Copy made because gitGet cant pull from pastebin
+--Also prevents any issues caused by paste being updated or removed
 ------------------------------------------------------------------ utils
 local controls = {["\n"]="\\n", ["\r"]="\\r", ["\t"]="\\t", ["\b"]="\\b", ["\f"]="\\f", ["\""]="\\\"", ["\\"]="\\\\"}
 
