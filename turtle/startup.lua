@@ -1,3 +1,11 @@
+--TurtleController--
+
+local vers = "0.1"
+
+--Made by Mavric--
+--How to setup is on my youtube channel--
+--Code on https://github.com/MavricMC/CC-TurtleController/--
+
 local server = "ws://localhost:8000"
 local ws, err = http.websocket(server)
 os.loadAPI("turtleController/json.lua")
